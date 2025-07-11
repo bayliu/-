@@ -1,56 +1,60 @@
-// /src/components/DraggableItem.jsx (最終驗證版 - useDrag)
+// /src/components/DraggableItem.jsx (最終堆疊修正版)
 
-import { useRef, useEffect, useState } from 'react';
-import { RigidBody } from '@react-three/rapier';
+import { useRef, useState } from 'react';
+import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
 import { useDrag } from '@use-gesture/react';
-import { useThree } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export default function DraggableItem({ item, orbitControlsRef }) {
     const body = useRef();
     const [isDragging, setIsDragging] = useState(false);
-    const { size, camera } = useThree();
+    const { scene, camera } = useThree(); // 取得場景和攝影機
 
     const { w, h, d } = item.dimensions;
 
     // 使用 useDrag Hook
     const bind = useDrag(
-        ({ active, movement: [mx, my], timeStamp, event, first, last }) => {
+        ({ active, first, last }) => {
             if (first) { // 拖曳開始
                 setIsDragging(true);
                 if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
-                body.current.setBodyType(1); // 設置為 Kinematic，手動控制
-                body.current.wakeUp();
+                body.current.setBodyType(1); // Kinematic
             }
-
-            if (active) { // 拖曳中
-                const currentPos = body.current.translation();
-
-                // 使用一個固定的平面來計算拖曳位置，避免跳動
-                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentPos.y);
-                const ray = new THREE.Ray();
-                const mouse = new THREE.Vector2(
-                    (event.clientX / size.width) * 2 - 1,
-                    - (event.clientY / size.height) * 2 + 1
-                );
-                ray.setFromCamera(mouse, camera);
-
-                const intersection = new THREE.Vector3();
-                if (ray.intersectPlane(plane, intersection)) {
-                    body.current.setNextKinematicTranslation(intersection);
-                }
-            }
-
             if (last) { // 拖曳結束
                 setIsDragging(false);
                 if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-                body.current.setBodyType(0); // 恢復為 Dynamic，交給物理引擎
+                body.current.setBodyType(0); // Dynamic
             }
-            return timeStamp;
         },
         { drag: { threshold: 3 } }
     );
+
+    // 在每一幀中處理拖曳邏輯
+    useFrame((state) => {
+        if (isDragging) {
+            // 創建一條從攝影機發出的射線
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(state.mouse, camera);
+
+            // VVVVVVVV 核心修改：偵測所有可堆疊的物體 VVVVVVVV
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            // 過濾掉被拖曳物體自身，只尋找其他物體或地面
+            const firstIntersect = intersects.find(
+                (i) => i.object.uuid !== body.current.uuid && i.object.parent.userData?.isStackable
+            );
+
+            if (firstIntersect) {
+                // 如果找到了可以堆疊的表面，就將物體移動到那個點上
+                const point = firstIntersect.point;
+                // 為了避免物體陷入其他物體，我們在 Y 軸上增加一點點偏移
+                body.current.setNextKinematicTranslation({ x: point.x, y: point.y + h / 2 + 0.01, z: point.z });
+            }
+            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            body.current.wakeUp();
+        }
+    });
 
     const rotateItem = (e) => {
         e.stopPropagation();
@@ -63,11 +67,13 @@ export default function DraggableItem({ item, orbitControlsRef }) {
     };
 
     return (
+        // 我們在 RigidBody 的 userData 中加入一個標記，告訴射線這是一個可堆疊的物體
         <RigidBody
             ref={body}
             colliders='cuboid'
             position={item.position}
             type="dynamic"
+            userData={{ isStackable: true }}
         >
             <Box
                 {...bind()}

@@ -1,4 +1,4 @@
-// /src/components/Scene.jsx (最終驗證版 - useDrag)
+// /src/components/Scene.jsx (最終堆疊修正版)
 
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
@@ -26,13 +26,15 @@ function SceneContent() {
             <Grid infiniteGrid={true} fadeDistance={50} fadeStrength={5} />
 
             <Physics gravity={[0, -9.8, 0]}>
-                {/* VVVVVV 新增一個巨大的、看不見的地面 VVVVVV */}
-                <CuboidCollider
-                    args={[100, 0.1, 100]}
-                    position={[0, -0.1, 0]}
-                    restitution={0.1}
-                />
-                {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
+                {/* VVVVVVVV 核心修改：將地面從純物理碰撞體改為可見的 Mesh VVVVVV */}
+                {/* 我們讓它非常大，但透明，這樣射線才能偵測到它 */}
+                <RigidBody type="fixed" colliders="cuboid" userData={{ isStackable: true }}>
+                    <mesh position={[0, -0.05, 0]}>
+                        <boxGeometry args={[200, 0.1, 200]} />
+                        <meshStandardMaterial transparent opacity={0} />
+                    </mesh>
+                </RigidBody>
+                {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
 
                 <StorageSpace />
                 {itemsInScene.map((item) => (
