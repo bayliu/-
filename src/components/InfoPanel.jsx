@@ -1,4 +1,4 @@
-// /src/components/InfoPanel.jsx (修正重複匯出錯誤)
+// /src/components/InfoPanel.jsx (最終確認版)
 
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
@@ -62,7 +62,7 @@ export default function InfoPanel() {
                                     : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                                 }`}
                         >
-                            {size}倉
+                            {size}
                         </button>
                     ))}
                 </div>

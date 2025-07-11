@@ -1,9 +1,8 @@
-// /src/store/useStore.js (最終修正版)
+// /src/store/useStore.js (最終版 - 更新尺寸為材積)
 
 import create from 'zustand';
 
 const useStore = create((set, get) => ({
-    // 預設物品列表
     items: [
         { id: 's-box', name: '小型箱 (S)', dimensions: { w: 0.3, h: 0.3, d: 0.3 } },
         { id: 'm-box', name: '中型箱 (M)', dimensions: { w: 0.5, h: 0.4, d: 0.4 } },
@@ -11,66 +10,51 @@ const useStore = create((set, get) => ({
         { id: 'mattress', name: '單人床墊', dimensions: { w: 0.9, h: 1.9, d: 0.2 } },
         { id: 'fridge', name: '小冰箱', dimensions: { w: 0.6, h: 1.0, d: 0.6 } },
     ],
-    // 預設倉儲空間
+    // VVVVVV 核心修改：將 S/M/L 替換為以材積為單位的尺寸 VVVVVV
     storageSpaces: {
-        'S': { w: 1, h: 2.5, d: 1 },
-        'M': { w: 2, h: 2.5, d: 2 },
-        'L': { w: 3, h: 2.5, d: 3 },
-        'Custom': { w: 2, h: 2.5, d: 2 },
+        '100材': { w: 1.1, h: 2.4, d: 1.1 }, // 約 104 材
+        '200材': { w: 1.5, h: 2.4, d: 1.5 }, // 約 190 材
+        '300材': { w: 1.9, h: 2.4, d: 1.9 }, // 約 305 材
+        'Custom': { w: 2, h: 2.5, d: 2 }, // 自訂空間的預設值保持不變
     },
-    selectedSpace: 'M',
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    selectedSpace: '200材', // 預設選擇 200 材
     itemsInScene: [],
 
-    // --- 操作函數 (Actions) ---
-
     setStorageSpace: (size) => set({ selectedSpace: size, itemsInScene: [] }),
-
     setCustomSpace: (dims) => set((state) => ({
         storageSpaces: { ...state.storageSpaces, Custom: dims },
         selectedSpace: 'Custom',
         itemsInScene: []
     })),
-
     addItemToScene: (item) => {
         const { storageSpaces, selectedSpace } = get();
         const spaceDims = storageSpaces[selectedSpace];
         const newItem = {
             ...item,
             instanceId: `${item.id}-${Date.now()}`,
-            position: [
-                (Math.random() - 0.5) * (spaceDims.w * 0.1),
-                spaceDims.h, // 修正生成高度，確保在倉庫頂部
-                (Math.random() - 0.5) * (spaceDims.d * 0.1)
-            ],
+            position: [(Math.random() - 0.5) * (spaceDims.w * 0.1), spaceDims.h, (Math.random() - 0.5) * (spaceDims.d * 0.1)],
         };
         set((state) => ({ itemsInScene: [...state.itemsInScene, newItem] }));
     },
-
     removeItemFromScene: (instanceId) => set((state) => ({
         itemsInScene: state.itemsInScene.filter((item) => item.instanceId !== instanceId)
     })),
-
-    // --- 計算函數 ---
     getCalculations: () => {
         const { storageSpaces, selectedSpace, itemsInScene } = get();
         const spaceDims = storageSpaces[selectedSpace];
         const spaceVolume = spaceDims.w * spaceDims.h * spaceDims.d;
         let itemsVolume = 0;
-        let itemsCFT = 0; // CFT = Cubic Feet (材積)
-
+        let itemsCFT = 0;
         itemsInScene.forEach(item => {
             const w_m = item.dimensions.w;
             const h_m = item.dimensions.h;
             const d_m = item.dimensions.d;
-
             itemsVolume += w_m * h_m * d_m;
-
             const cft = (w_m * 100 * h_m * 100 * d_m * 100) / 28316.846592;
             itemsCFT += cft;
         });
-
         const usage = spaceVolume > 0 ? (itemsVolume / spaceVolume) * 100 : 0;
-
         return {
             spaceVolume: spaceVolume.toFixed(2),
             itemsVolume: itemsVolume.toFixed(2),
