@@ -1,6 +1,6 @@
-// /src/components/Scene.jsx (穩定版)
+// /src/components/Scene.jsx (最終驗證版 - useDrag)
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { Physics, CuboidCollider } from '@react-three/rapier';
 import DraggableItem from './DraggableItem';
@@ -8,13 +8,12 @@ import StorageSpace from './StorageSpace';
 import useStore from '../store/useStore';
 import { useRef } from 'react';
 
-// 我們將所有邏輯放回 Scene，不再需要 SceneContent
-export default function Scene() {
+function SceneContent() {
     const itemsInScene = useStore((state) => state.itemsInScene);
     const orbitControlsRef = useRef();
 
     return (
-        <Canvas camera={{ position: [4, 4, 4], fov: 50 }} shadows>
+        <>
             <ambientLight intensity={0.7} />
             <directionalLight
                 position={[5, 10, 7]}
@@ -27,11 +26,13 @@ export default function Scene() {
             <Grid infiniteGrid={true} fadeDistance={50} fadeStrength={5} />
 
             <Physics gravity={[0, -9.8, 0]}>
-                {/* 透明的巨大地面，讓物品不會掉下去 */}
+                {/* VVVVVV 新增一個巨大的、看不見的地面 VVVVVV */}
                 <CuboidCollider
                     args={[100, 0.1, 100]}
                     position={[0, -0.1, 0]}
+                    restitution={0.1}
                 />
+                {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
 
                 <StorageSpace />
                 {itemsInScene.map((item) => (
@@ -42,6 +43,14 @@ export default function Scene() {
                     />
                 ))}
             </Physics>
-        </Canvas>
+        </>
     );
+}
+
+export default function Scene() {
+    return (
+        <Canvas camera={{ position: [4, 4, 4], fov: 50 }} shadows>
+            <SceneContent />
+        </Canvas>
+    )
 }
