@@ -1,4 +1,4 @@
-// /src/components/Scene.jsx (最終修正版 v5.1 - 修正重複匯出錯誤)
+// /src/components/Scene.jsx (最終版)
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
@@ -6,7 +6,7 @@ import { Physics } from '@react-three/rapier';
 import DraggableItem from './DraggableItem';
 import StorageSpace from './StorageSpace';
 import useStore from '../store/useStore';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import * as THREE from 'three';
 
 function SceneContent() {
@@ -49,7 +49,6 @@ function SceneContent() {
                         key={item.instanceId}
                         item={item}
                         orbitControlsRef={orbitControlsRef}
-                        // 傳遞狀態控制函數
                         setActiveItem={setActiveItem}
                         setDragPlane={setDragPlane}
                     />
@@ -59,7 +58,6 @@ function SceneContent() {
     );
 }
 
-// 這是我們唯一要匯出的元件
 export default function Scene() {
     return (
         <Canvas camera={{ position: [4, 4, 4], fov: 50 }} shadows>

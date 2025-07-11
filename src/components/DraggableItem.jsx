@@ -1,3 +1,5 @@
+// /src/components/DraggableItem.jsx (³Ì²×ª©)
+
 import { useRef, useState } from 'react';
 import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
