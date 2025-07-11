@@ -1,36 +1,37 @@
-// /src/components/DraggableItem.jsx (最終驗證版 v5 - 穩定追蹤)
+// /src/components/DraggableItem.jsx (最終修正版 v5.1 - 配合 SceneContent)
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// 接收一個新的 prop `setDragging`，用來通知 Scene 元件
-export default function DraggableItem({ item, orbitControlsRef, setDragging }) {
+export default function DraggableItem({ item, orbitControlsRef, setActiveItem, setDragPlane }) {
     const body = useRef();
     const [isHovered, setIsHovered] = useState(false);
     const [isActive, setIsActive] = useState(false);
 
     const { w, h, d } = item.dimensions;
 
-    const onPointerEnter = () => setIsHovered(true);
-    const onPointerLeave = () => setIsHovered(false);
-
     const onPointerDown = (e) => {
         e.stopPropagation();
-        // 設置自身為活動狀態，並通知 Scene
         setIsActive(true);
-        setDragging(true);
+        // 通知 SceneContent 開始拖曳這個物體
+        setActiveItem({ ref: body });
+        // 設置拖曳平面
+        setDragPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -e.point.y));
+
         if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
-        body.current.setBodyType(1); // Kinematic
         body.current.wakeUp();
+        body.current.setBodyType(1); // Kinematic
     };
 
     const onPointerUp = (e) => {
         e.stopPropagation();
         if (isActive) {
             setIsActive(false);
-            setDragging(false);
+            // 通知 SceneContent 停止拖曳
+            setActiveItem(null);
+
             if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
             body.current.setBodyType(0); // Dynamic
         }
@@ -45,9 +46,6 @@ export default function DraggableItem({ item, orbitControlsRef, setDragging }) {
         body.current.setRotation(currentRotation, true);
     };
 
-    // 將拖曳邏輯轉移到 Scene 元件中集中處理
-    // 這個元件現在只負責觸發狀態變化
-
     return (
         <RigidBody
             ref={body}
@@ -59,10 +57,11 @@ export default function DraggableItem({ item, orbitControlsRef, setDragging }) {
                 args={[w, h, d]}
                 castShadow
                 receiveShadow
-                onPointerEnter={onPointerEnter}
-                onPointerLeave={onPointerLeave}
+                onPointerEnter={() => setIsHovered(true)}
+                onPointerLeave={() => setIsHovered(false)}
                 onPointerDown={onPointerDown}
                 onPointerUp={onPointerUp}
+                onPointerOut={onPointerUp}
                 onContextMenu={(e) => { e.preventDefault(); rotateItem(e); }}
             >
                 <meshStandardMaterial color={isActive ? '#60a5fa' : (isHovered ? '#f9a826' : '#f97316')} />
