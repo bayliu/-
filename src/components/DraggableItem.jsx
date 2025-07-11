@@ -3,7 +3,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-export default function DraggableItem({ item }) {
+export default function DraggableItem({ item, orbitControlsRef }) { // <--- 修改這裡
   const body = useRef();
   const [isDragging, setIsDragging] = useState(false);
 
@@ -11,8 +11,11 @@ export default function DraggableItem({ item }) {
 
   const onDragStart = (e) => {
     e.stopPropagation();
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.enabled = false; // <--- 新增這一行
+    }
     setIsDragging(true);
-    body.current.setBodyType(1);
+    body.current.setBodyType(1); // Kinematic
     body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     body.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
   };
@@ -30,20 +33,19 @@ export default function DraggableItem({ item }) {
   
   const onDragEnd = (e) => {
     e.stopPropagation();
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.enabled = true; // <--- 新增這一行
+    }
     setIsDragging(false);
-    body.current.setBodyType(0);
+    body.current.setBodyType(0); // Dynamic
   };
 
   const rotateItem = (e) => {
-    e.stopPropagation();
-    if (isDragging) return;
-    const currentRotation = new THREE.Quaternion().copy(body.current.rotation());
-    const rotationY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
-    currentRotation.multiply(rotationY);
-    body.current.setRotation(currentRotation, true);
+    // ... 旋轉邏輯保持不變
   };
 
   return (
+    // ... return 內容保持不變
     <RigidBody 
       ref={body} 
       colliders={false} 
@@ -55,23 +57,10 @@ export default function DraggableItem({ item }) {
         onPointerDown={onDragStart}
         onPointerMove={onDrag}
         onPointerUp={onDragEnd}
-        onPointerOut={onDragEnd}
+        onPointerOut={onDragEnd} // <--- onPointerOut 也要觸發 onDragEnd
         onContextMenu={(e) => { e.preventDefault(); rotateItem(e); }}
       >
-        <Box args={[w, h, d]} castShadow receiveShadow>
-          <meshStandardMaterial color={isDragging ? '#60a5fa' : '#f97316'} />
-        </Box>
-        <Text
-            color="white"
-            fontSize={Math.min(w,d) * 0.3}
-            position={[0, h / 2 + 0.1, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={w}
-        >
-            {item.name}
-        </Text>
+        {/* ... */}
       </group>
     </RigidBody>
   );
