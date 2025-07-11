@@ -1,4 +1,4 @@
-// /src/components/Scene.jsx (最終修正版)
+// /src/components/Scene.jsx (最終驗證版 - useDrag)
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
@@ -6,28 +6,11 @@ import { Physics } from '@react-three/rapier';
 import DraggableItem from './DraggableItem';
 import StorageSpace from './StorageSpace';
 import useStore from '../store/useStore';
-import { useRef, useState } from 'react';
-import * as THREE from 'three';
+import { useRef } from 'react';
 
 function SceneContent() {
     const itemsInScene = useStore((state) => state.itemsInScene);
     const orbitControlsRef = useRef();
-
-    const [activeItem, setActiveItem] = useState(null);
-    const [dragPlane, setDragPlane] = useState(new THREE.Plane());
-    const { raycaster } = useThree();
-
-    useFrame(() => {
-        if (activeItem) {
-            const body = activeItem.ref.current;
-            if (body) {
-                const intersection = new THREE.Vector3();
-                if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-                    body.setNextKinematicTranslation(intersection);
-                }
-            }
-        }
-    });
 
     return (
         <>
@@ -49,8 +32,6 @@ function SceneContent() {
                         key={item.instanceId}
                         item={item}
                         orbitControlsRef={orbitControlsRef}
-                        setActiveItem={setActiveItem}
-                        setDragPlane={setDragPlane}
                     />
                 ))}
             </Physics>
