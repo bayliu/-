@@ -1,5 +1,4 @@
-// /src/components/InfoPanel.jsx (微調版)
-
+// /src/components/InfoPanel.jsx (新增材積顯示)
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
 
@@ -9,7 +8,45 @@ export default function InfoPanel() {
         getCalculations, itemsInScene, removeItemFromScene, setCustomSpace
     } = useStore();
 
-    const { spaceVolume, itemsVolume, usage } = getCalculations();
+    // 從 getCalculations 中取得新的 itemsCFT 值
+    const { spaceVolume, itemsVolume, itemsCFT, usage } = getCalculations();
+
+    // ... customDims state 和相關函數保持不變 ...
+
+    return (
+        <div className="absolute top-4 right-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-80 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            {/* ... 標題和按鈕部分保持不變 ... */}
+
+            <div className="mb-4 p-3 bg-gray-700/50 rounded-lg">
+                <h3 className="font-semibold text-gray-100 text-center">空間使用率: {usage}%</h3>
+                <div className="w-full bg-gray-900 rounded-full h-4 my-2 overflow-hidden border border-gray-600">
+                    <div
+                        className="bg-gradient-to-r from-green-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${usage}%` }}
+                    ></div>
+                </div>
+                <div className="text-xs text-gray-400 text-center space-y-1">
+                    <p>總體積: {spaceVolume} m³ / 物品: {itemsVolume} m³</p>
+                    {/* VVVVVV 新增這一行來顯示總材積 VVVVVV */}
+                    <p className="font-bold text-emerald-300">預估總材積: {itemsCFT} 材</p>
+                    {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
+                </div>
+            </div>
+
+            {/* ... 物品列表部分保持不變 ... */}
+        </div>
+    );
+}
+
+// 為了讓您能直接複製貼上，這裡提供完整的 InfoPanel.jsx 內容
+// (您只需要複製下面的完整程式碼即可)
+const FullInfoPanel = () => {
+    const {
+        storageSpaces, selectedSpace, setStorageSpace,
+        getCalculations, itemsInScene, removeItemFromScene, setCustomSpace
+    } = useStore();
+
+    const { spaceVolume, itemsVolume, itemsCFT, usage } = getCalculations();
 
     const [customDims, setCustomDims] = useState({
         w: storageSpaces.Custom.w * 100,
@@ -97,7 +134,10 @@ export default function InfoPanel() {
                         style={{ width: `${usage}%` }}
                     ></div>
                 </div>
-                <p className="text-xs text-gray-400 text-center">總體積: {spaceVolume} m³ / 物品: {itemsVolume} m³</p>
+                <div className="text-xs text-gray-400 text-center space-y-1">
+                    <p>總體積: {spaceVolume} m³ / 物品: {itemsVolume} m³</p>
+                    <p className="font-bold text-emerald-300">預估總材積: {itemsCFT} 材</p>
+                </div>
             </div>
 
             <div>
@@ -123,3 +163,6 @@ export default function InfoPanel() {
         </div>
     );
 }
+
+// 導出完整的元件
+export default FullInfoPanel;
