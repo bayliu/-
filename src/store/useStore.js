@@ -1,9 +1,8 @@
-// /src/store/useStore.js (最終版)
+// /src/store/useStore.js (穩定版)
 
 import create from 'zustand';
 
 const useStore = create((set, get) => ({
-    // VVVVVVVV 核心修改：更新物品列表 VVVVVVVV
     items: [
         { id: 's-box', name: '小紙箱', dimensions: { w: 0.35, h: 0.25, d: 0.30 } },
         { id: 'm-box', name: '中紙箱', dimensions: { w: 0.48, h: 0.32, d: 0.36 } },
@@ -12,7 +11,6 @@ const useStore = create((set, get) => ({
         { id: 'mattress', name: '單人床墊', dimensions: { w: 0.9, h: 1.9, d: 0.2 } },
         { id: 'fridge', name: '小冰箱', dimensions: { w: 0.6, h: 1.0, d: 0.6 } },
     ],
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     storageSpaces: {
         '100材': { w: 1.1, h: 2.4, d: 1.1 },
         '200材': { w: 1.5, h: 2.4, d: 1.5 },
@@ -22,12 +20,12 @@ const useStore = create((set, get) => ({
     selectedSpace: '200材',
     itemsInScene: [],
 
-    // --- 操作函數 (Actions) ---
-
     setStorageSpace: (size) => set({ selectedSpace: size, itemsInScene: [] }),
-    setCustomSpace: (dims) => set((state) => ({ storageSpaces: { ...state.storageSpaces, Custom: dims }, selectedSpace: 'Custom', itemsInScene: [] })),
-
-    // 修改 addItemToScene 以支持一次新增多個
+    setCustomSpace: (dims) => set((state) => ({
+        storageSpaces: { ...state.storageSpaces, Custom: dims },
+        selectedSpace: 'Custom',
+        itemsInScene: []
+    })),
     addItemToScene: (item, quantity = 1) => {
         const { storageSpaces, selectedSpace } = get();
         const spaceDims = storageSpaces[selectedSpace];
@@ -41,25 +39,12 @@ const useStore = create((set, get) => ({
         }
         set((state) => ({ itemsInScene: [...state.itemsInScene, ...newItems] }));
     },
-
     removeItemFromScene: (instanceId) => set((state) => ({
         itemsInScene: state.itemsInScene.filter((item) => item.instanceId !== instanceId)
     })),
-
-    // VVVVVVVV 新增一鍵清除函數 VVVVVVVV
     clearAllItems: () => set({ itemsInScene: [] }),
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    // --- 計算函數 (保持不變) ---
     getCalculations: () => {
-        // ... 此處計算邏輯保持不變 ...
-    },
-}));
-
-// 為了確保 getCalculations 不會被覆蓋，將其完整內容放在這裡
-useStore.setState({
-    getCalculations: () => {
-        const { storageSpaces, selectedSpace, itemsInScene } = useStore.getState();
+        const { storageSpaces, selectedSpace, itemsInScene } = get();
         const spaceDims = storageSpaces[selectedSpace];
         const spaceVolume = spaceDims.w * spaceDims.h * spaceDims.d;
         let itemsVolume = 0;
@@ -79,7 +64,7 @@ useStore.setState({
             itemsCFT: Math.round(itemsCFT),
             usage: Math.min(100, usage).toFixed(1),
         };
-    }
-});
+    },
+}));
 
 export default useStore;
