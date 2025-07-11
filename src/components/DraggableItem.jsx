@@ -1,54 +1,61 @@
-// /src/components/DraggableItem.jsx (最終驗證版 v4 - 使用 useDrag)
+// /src/components/DraggableItem.jsx (修正 useDrag 引用來源)
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { RigidBody } from '@react-three/rapier';
-import { Box, Text, useDrag } from '@react-three/drei';
+import { Box, Text } from '@react-three/drei'; // 保持不變
+import { useDrag } from '@use-gesture/react'; // <-- 從正確的函式庫引入
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export default function DraggableItem({ item, orbitControlsRef }) {
     const body = useRef();
     const [isDragging, setIsDragging] = useState(false);
-    const { size } = useThree();
+    const { size, camera } = useThree();
 
     const { w, h, d } = item.dimensions;
 
     // 使用 useDrag Hook
     const bind = useDrag(
-        ({ active, movement: [mx, my], timeStamp, event }) => {
-            // 拖曳開始
-            if (active && !isDragging) {
-                setIsDragging(true);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
-                body.current.setBodyType(1); // Kinematic
-                body.current.wakeUp();
+        ({ active, movement: [mx, my], event }) => {
+            if (orbitControlsRef.current) {
+                orbitControlsRef.current.enabled = !active;
             }
-            // 拖曳結束
-            if (!active && isDragging) {
-                setIsDragging(false);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-                body.current.setBodyType(0); // Dynamic
-            }
+            setIsDragging(active);
 
-            // 拖曳中
-            if (isDragging) {
+            if (active) {
                 const currentPos = body.current.translation();
-                // 將螢幕上的移動轉換為 3D 世界中的移動
-                // 這個計算比較複雜，但 useDrag 幫我們簡化了
-                const newX = currentPos.x + (mx / size.width) * 10;
-                const newZ = currentPos.z - (my / size.height) * 10;
+                // 將螢幕移動轉換為 3D 世界座標
+                const vec = new THREE.Vector3();
+                vec.set(
+                    (event.clientX / size.width) * 2 - 1,
+                    - (event.clientY / size.height) * 2 + 1,
+                    0.5);
+                vec.unproject(camera);
+                vec.sub(camera.position).normalize();
+                const distance = - camera.position.y / vec.y;
+                const pos = camera.position.clone().add(vec.multiplyScalar(distance));
 
-                // 我們只在 XZ 平面上移動，Y 保持不變
-                body.current.setNextKinematicTranslation({ x: newX, y: currentPos.y, z: newZ });
+                body.current.setNextKinematicTranslation({ x: pos.x, y: currentPos.y, z: pos.z });
             }
 
-            return timeStamp; // 必須返回 timeStamp
+            return event.timeStamp;
         },
         {
-            // 設置拖曳的閾值，防止輕微點擊被誤判為拖曳
+            // 設置拖曳的閾值
             drag: { threshold: 3 },
+            // 綁定到 window，防止滑鼠移出物體時事件中斷
+            target: window,
         }
     );
+
+    useEffect(() => {
+        if (!body.current) return;
+        if (isDragging) {
+            body.current.setBodyType(1); // Kinematic
+        } else {
+            body.current.setBodyType(0); // Dynamic
+        }
+    }, [isDragging]);
 
     const rotateItem = (e) => {
         e.stopPropagation();
@@ -67,7 +74,6 @@ export default function DraggableItem({ item, orbitControlsRef }) {
             position={item.position}
             type="dynamic"
         >
-            {/* 將 useDrag 返回的事件綁定到這個 Box 上 */}
             <Box
                 {...bind()}
                 args={[w, h, d]}
