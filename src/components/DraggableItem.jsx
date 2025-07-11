@@ -1,5 +1,3 @@
-// /src/components/DraggableItem.jsx (最終修正版 v5.1 - 配合 SceneContent)
-
 import { useRef, useState } from 'react';
 import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
@@ -15,25 +13,20 @@ export default function DraggableItem({ item, orbitControlsRef, setActiveItem, s
     const onPointerDown = (e) => {
         e.stopPropagation();
         setIsActive(true);
-        // 通知 SceneContent 開始拖曳這個物體
         setActiveItem({ ref: body });
-        // 設置拖曳平面
         setDragPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -e.point.y));
-
         if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
         body.current.wakeUp();
-        body.current.setBodyType(1); // Kinematic
+        body.current.setBodyType(1);
     };
 
     const onPointerUp = (e) => {
         e.stopPropagation();
         if (isActive) {
             setIsActive(false);
-            // 通知 SceneContent 停止拖曳
             setActiveItem(null);
-
             if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-            body.current.setBodyType(0); // Dynamic
+            body.current.setBodyType(0);
         }
     };
 
