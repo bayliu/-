@@ -1,7 +1,5 @@
-// /src/components/DraggableItem.jsx (完整修正版)
-
 import { useRef, useState } from 'react';
-import { RigidBody, CuboidCollider } from '@react-three/rapier';
+import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -23,15 +21,12 @@ export default function DraggableItem({ item, orbitControlsRef }) {
     };
 
     const onDrag = (e) => {
-        if (!isDragging || !e.ray.origin) return; // 增加保護
+        if (!isDragging) return;
         e.stopPropagation();
 
-        // 修正拖曳邏輯：直接使用事件點 e.point
-        const newPos = new THREE.Vector3().copy(e.point);
+        // 保持拖曳時的高度不變
         const currentPos = body.current.translation();
-        newPos.y = currentPos.y; // 保持拖曳時的高度不變
-
-        body.current.setNextKinematicTranslation(newPos);
+        body.current.setNextKinematicTranslation({ x: e.point.x, y: currentPos.y, z: e.point.z });
     };
 
     const onDragEnd = (e) => {
@@ -39,7 +34,7 @@ export default function DraggableItem({ item, orbitControlsRef }) {
         if (orbitControlsRef.current) {
             orbitControlsRef.current.enabled = true;
         }
-        if (isDragging) { // 只有在正在拖曳時才執行
+        if (isDragging) {
             setIsDragging(false);
             body.current.setBodyType(0); // Dynamic
         }
@@ -57,7 +52,7 @@ export default function DraggableItem({ item, orbitControlsRef }) {
     return (
         <RigidBody
             ref={body}
-            colliders='cuboid' // 簡化寫法
+            colliders='cuboid'
             position={item.position}
             type="dynamic"
         >
@@ -73,12 +68,12 @@ export default function DraggableItem({ item, orbitControlsRef }) {
                 </Box>
                 <Text
                     color="white"
-                    fontSize={Math.min(w, d) * 0.3}
+                    fontSize={Math.min(w, d, h) * 0.4}
                     position={[0, h / 2 + 0.1, 0]}
                     rotation={[-Math.PI / 2, 0, 0]}
                     anchorX="center"
                     anchorY="middle"
-                    maxWidth={w}
+                    maxWidth={w * 0.9}
                 >
                     {item.name}
                 </Text>

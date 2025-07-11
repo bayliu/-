@@ -1,91 +1,84 @@
 import create from 'zustand';
 
 const useStore = create((set, get) => ({
-  items: [
-    { id: 1, name: '小型箱 (S)', dimensions: { w: 0.3, h: 0.3, d: 0.3 } },
-    { id: 2, name: '中型箱 (M)', dimensions: { w: 0.5, h: 0.4, d: 0.4 } },
-    { id: 3, name: '單人床墊', dimensions: { w: 0.9, h: 1.9, d: 0.2 } },
-    { id: 4, name: '小冰箱', dimensions: { w: 0.6, h: 1.0, d: 0.6 } },
-  ],
-  storageSpaces: {
-    'S': { w: 1, h: 2.5, d: 1 },
-    'M': { w: 2, h: 2.5, d: 2 },
-    'L': { w: 3, h: 2.5, d: 3 },
-  },
-  selectedSpace: 'M',
-  itemsInScene: [],
+    // 預設可新增的物品範本
+    items: [
+        { id: 's-box', name: '小型箱 (S)', dimensions: { w: 0.3, h: 0.3, d: 0.3 } },
+        { id: 'm-box', name: '中型箱 (M)', dimensions: { w: 0.5, h: 0.4, d: 0.4 } },
+        { id: 'mattress', name: '單人床墊', dimensions: { w: 0.9, h: 1.9, d: 0.2 } },
+        { id: 'fridge', name: '小冰箱', dimensions: { w: 0.6, h: 1.0, d: 0.6 } },
+    ],
+    // 預設倉儲空間尺寸 (m)
+    storageSpaces: {
+        'S': { w: 1, h: 2.5, d: 1 },
+        'M': { w: 2, h: 2.5, d: 2 },
+        'L': { w: 3, h: 2.5, d: 3 },
+        'Custom': { w: 2, h: 2.5, d: 2 }, // 自訂空間的預設值
+    },
+    selectedSpace: 'M',
+    itemsInScene: [], // 存在於 3D 場景中的物品
 
-  setStorageSpace: (size) => {
-    set({ selectedSpace: size, itemsInScene: [] });
-  },
+    // === 操作 (Actions) ===
 
-  addItemToScene: (item) => {
-    const { storageSpaces, selectedSpace } = get();
-    const spaceDims = storageSpaces[selectedSpace];
-    const newItem = {
-      ...item,
-      instanceId: `${item.id}-${Date.now()}`,
-      position: [
-        (Math.random() - 0.5) * (spaceDims.w * 0.2),
-        spaceDims.h,
-        (Math.random() - 0.5) * (spaceDims.d * 0.2)
-      ],
-    };
-    set((state) => ({ itemsInScene: [...state.itemsInScene, newItem] }));
-  },
+    // 設定選擇的倉儲空間
+    setStorageSpace: (size) => {
+        set({ selectedSpace: size, itemsInScene: [] }); // 切換空間時清空場景
+    },
 
-  removeItemFromScene: (instanceId) => {
-    set((state) => ({
-      itemsInScene: state.itemsInScene.filter((item) => item.instanceId !== instanceId),
-    }));
-  },
-  
-  getCalculations: () => {
-    const { storageSpaces, selectedSpace, itemsInScene } = get();
-    const spaceDims = storageSpaces[selectedSpace];
-    const spaceVolume = spaceDims.w * spaceDims.h * spaceDims.d;
+    // 設定自訂空間尺寸
+    setCustomSpace: (dims) => {
+        set((state) => ({
+            storageSpaces: { ...state.storageSpaces, Custom: dims },
+            selectedSpace: 'Custom',
+            itemsInScene: [],
+        }));
+    },
 
-   const itemsVolume = itemsInScene.reduce((total, item) => {
-          // 修正體積計算公式 w * d * h
-          return total + (item.dimensions.w * item.dimensions.d * item.dimensions.h);
-      }, 0);
+    // 新增物品到場景
+    addItemToScene: (item) => {
+        const { storageSpaces, selectedSpace } = get();
+        const spaceDims = storageSpaces[selectedSpace];
+        const newItem = {
+            ...item,
+            instanceId: `${item.id}-${Date.now()}`,
+            // 修正生成位置，確保在倉庫正上方
+            position: [
+                (Math.random() - 0.5) * (spaceDims.w * 0.1), // 隨機 X
+                spaceDims.h + 0.5, // 在倉庫頂部上方
+                (Math.random() - 0.5) * (spaceDims.d * 0.1)  // 隨機 Z
+            ],
+        };
+        set((state) => ({
+            itemsInScene: [...state.itemsInScene, newItem],
+        }));
+    },
 
-      const usage = spaceVolume > 0 ? (itemsVolume / spaceVolume) * 100 : 0;
-      // /src/store/useStore.js (新增部分)
+    // 從場景移除物品
+    removeItemFromScene: (instanceId) => {
+        set((state) => ({
+            itemsInScene: state.itemsInScene.filter((item) => item.instanceId !== instanceId),
+        }));
+    },
 
-      const useStore = create((set, get) => ({
-          // ... 原有內容 ...
-          storageSpaces: {
-              'S': { w: 1, h: 2.5, d: 1 },
-              'M': { w: 2, h: 2.5, d: 2 },
-              'L': { w: 3, h: 2.5, d: 3 },
-              'Custom': { w: 2, h: 2.5, d: 2 }, // 新增一個預設的 Custom
-          },
-          selectedSpace: 'M',
-          // ... 原有內容 ...
-          setStorageSpace: (size) => {
-              set({ selectedSpace: size, itemsInScene: [] });
-          },
+    // 計算體積與使用率
+    getCalculations: () => {
+        const { storageSpaces, selectedSpace, itemsInScene } = get();
+        const spaceDims = storageSpaces[selectedSpace];
+        const spaceVolume = spaceDims.w * spaceDims.h * spaceDims.d;
 
-          // VVVVVV 新增這個函數 VVVVVV
-          setCustomSpace: (dims) => {
-              set((state) => ({
-                  storageSpaces: { ...state.storageSpaces, Custom: dims },
-                  selectedSpace: 'Custom',
-                  itemsInScene: [],
-              }));
-          },
-          // ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        const itemsVolume = itemsInScene.reduce((total, item) => {
+            // 確保體積計算公式正確 w * h * d
+            return total + (item.dimensions.w * item.dimensions.h * item.dimensions.d);
+        }, 0);
 
-          // ... 其他函數保持不變 ...
-      }));
+        const usage = spaceVolume > 0 ? (itemsVolume / spaceVolume) * 100 : 0;
 
-    return {
-      spaceVolume: spaceVolume.toFixed(2),
-      itemsVolume: itemsVolume.toFixed(2),
-      usage: Math.min(100, usage).toFixed(1),
-    };
-  },
+        return {
+            spaceVolume: spaceVolume.toFixed(2),
+            itemsVolume: itemsVolume.toFixed(2),
+            usage: Math.min(100, usage).toFixed(1), // 使用率最大為 100%
+        };
+    },
 }));
 
 export default useStore;
