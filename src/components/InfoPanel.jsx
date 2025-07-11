@@ -1,4 +1,4 @@
-// /src/components/InfoPanel.jsx (美化版)
+// /src/components/InfoPanel.jsx (微調版)
 
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
