@@ -1,56 +1,101 @@
-// /src/components/ControlPanel.jsx (最終版 - 新增尺寸說明)
+// /src/components/ControlPanel.jsx (最終版 - 新增數量輸入)
 
 import { useState } from 'react';
 import useStore from '../store/useStore';
 
-export default function ControlPanel() {
-    const { items, addItemToScene } = useStore((state) => ({
-        items: state.items,
-        addItemToScene: state.addItemToScene,
-    }));
+// 創建一個可重複使用的物品按鈕元件
+function ItemButton({ item, onAdd }) {
+    const [quantity, setQuantity] = useState(1);
 
+    return (
+        <div className="bg-gray-700/50 p-3 rounded-lg">
+            <div className="flex justify-between items-center">
+                <div className="flex-grow">
+                    <p className="font-bold text-white">{item.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        {`寬${item.dimensions.w * 100}*長${item.dimensions.d * 100}*高${item.dimensions.h * 100}cm`}
+                    </p>
+                </div>
+                <div className="flex items-center space-x-2 ml-4">
+                    <input
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-14 p-1 text-center bg-gray-800 border border-gray-600 rounded-md"
+                    />
+                    <button
+                        onClick={() => onAdd(item, quantity)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-500 transition-all duration-200 shadow-md"
+                    >
+                        新增
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function ControlPanel() {
+    const { items, addItemToScene } = useStore();
     const [customItem, setCustomItem] = useState({ name: '我的物品', w: 50, d: 50, h: 50 });
 
     const handleCustomChange = (e) => setCustomItem({ ...customItem, [e.target.name]: e.target.value });
-
     const handleAddCustomItem = (e) => {
         e.preventDefault();
         const newItem = {
-            id: `custom-${Date.now()}`,
-            name: customItem.name,
-            dimensions: {
-                w: parseFloat(customItem.w) / 100,
-                h: parseFloat(customItem.h) / 100,
-                d: parseFloat(customItem.d) / 100,
-            },
+            id: `custom-${Date.now()}`, name: customItem.name,
+            dimensions: { w: parseFloat(customItem.w) / 100, h: parseFloat(customItem.h) / 100, d: parseFloat(customItem.d) / 100 },
         };
         if (newItem.dimensions.w > 0 && newItem.dimensions.h > 0 && newItem.dimensions.d > 0) {
-            addItemToScene(newItem);
-        } else {
-            alert("請輸入所有有效的正數尺寸！");
-        }
+            addItemToScene(newItem, 1); // 自訂物品一次只新增一個
+        } else { alert("請輸入所有有效的正數尺寸！"); }
     };
 
     return (
-        <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-72 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-96 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-center border-b border-gray-600 pb-2">新增物品</h2>
 
             <div className="space-y-3 mb-4">
                 {items.map((item) => (
-                    <div key={item.id}>
-                        <button
-                            onClick={() => addItemToScene(item)}
-                            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-all duration-200 shadow-md"
-                        >
-                            {item.name}
-                        </button>
-                        <p className="text-xs text-center text-gray-400 mt-1">
-                            {`(寬${item.dimensions.w * 100}*長${item.dimensions.d * 100}*高${item.dimensions.h * 100}cm)`}
-                        </p>
-                    </div>
+                    <ItemButton key={item.id} item={item} onAdd={addItemToScene} />
                 ))}
             </div>
 
+            <form onSubmit={handleAddCustomItem} className="bg-gray-700/50 p-3 rounded-lg">
+                {/* ... 自訂物品表單內容保持不變 ... */}
+            </form>
+
+            <div className="text-xs text-gray-300 mt-4 p-3 bg-gray-700/50 rounded-lg">
+                {/* ... 操作提示內容保持不變 ... */}
+            </div>
+        </div>
+    );
+}
+
+// 為了方便您直接複製貼上，這裡提供完整的 ControlPanel.jsx 內容
+const FullControlPanel = () => {
+    const { items, addItemToScene } = useStore();
+    const [customItem, setCustomItem] = useState({ name: '我的物品', w: 50, d: 50, h: 50 });
+    const handleCustomChange = (e) => setCustomItem({ ...customItem, [e.target.name]: e.target.value });
+    const handleAddCustomItem = (e) => {
+        e.preventDefault();
+        const newItem = {
+            id: `custom-${Date.now()}`, name: customItem.name,
+            dimensions: { w: parseFloat(customItem.w) / 100, h: parseFloat(customItem.h) / 100, d: parseFloat(customItem.d) / 100 },
+        };
+        if (newItem.dimensions.w > 0 && newItem.dimensions.h > 0 && newItem.dimensions.d > 0) {
+            addItemToScene(newItem, 1);
+        } else { alert("請輸入所有有效的正數尺寸！"); }
+    };
+    return (
+        <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-96 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-center border-b border-gray-600 pb-2">新增物品</h2>
+            <div className="space-y-3 mb-4">
+                {items.map((item) => (
+                    <ItemButton key={item.id} item={item} onAdd={addItemToScene} />
+                ))}
+            </div>
             <form onSubmit={handleAddCustomItem} className="bg-gray-700/50 p-3 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-center">自訂物品</h3>
                 <div className="space-y-3 text-sm">
@@ -77,7 +122,6 @@ export default function ControlPanel() {
                     新增自訂物品
                 </button>
             </form>
-
             <div className="text-xs text-gray-300 mt-4 p-3 bg-gray-700/50 rounded-lg">
                 <h4 className="font-bold text-gray-100 mb-1">操作提示</h4>
                 <p>- <span className="font-semibold">拖曳空白處:</span> 旋轉視角</p>
@@ -88,3 +132,4 @@ export default function ControlPanel() {
         </div>
     );
 }
+export { FullControlPanel as default };
