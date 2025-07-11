@@ -1,19 +1,20 @@
-// /src/components/Scene.jsx (最終驗證版 - useDrag)
+// /src/components/Scene.jsx (最終堆疊修正版)
 
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
-import { Physics, CuboidCollider } from '@react-three/rapier';
+import { Physics, RigidBody } from '@react-three/rapier';
 import DraggableItem from './DraggableItem';
 import StorageSpace from './StorageSpace';
 import useStore from '../store/useStore';
 import { useRef } from 'react';
 
-function SceneContent() {
+// 我們將所有邏輯放回 Scene，不再需要 SceneContent
+export default function Scene() {
     const itemsInScene = useStore((state) => state.itemsInScene);
     const orbitControlsRef = useRef();
 
     return (
-        <>
+        <Canvas camera={{ position: [4, 4, 4], fov: 50 }} shadows>
             <ambientLight intensity={0.7} />
             <directionalLight
                 position={[5, 10, 7]}
@@ -26,13 +27,15 @@ function SceneContent() {
             <Grid infiniteGrid={true} fadeDistance={50} fadeStrength={5} />
 
             <Physics gravity={[0, -9.8, 0]}>
-                {/* VVVVVV 新增一個巨大的、看不見的地面 VVVVVV */}
-                <CuboidCollider
-                    args={[100, 0.1, 100]}
-                    position={[0, -0.1, 0]}
-                    restitution={0.1}
-                />
-                {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
+                {/* VVVVVVVV 核心修改：將地面從純物理碰撞體改為可見的 Mesh VVVVVV */}
+                {/* 我們讓它非常大，但透明，這樣射線才能偵測到它 */}
+                <RigidBody type="fixed" colliders="cuboid">
+                    <mesh position={[0, -0.05, 0]} userData={{ isStackable: true }}>
+                        <boxGeometry args={[200, 0.1, 200]} />
+                        <meshStandardMaterial transparent opacity={0} />
+                    </mesh>
+                </RigidBody>
+                {/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */}
 
                 <StorageSpace />
                 {itemsInScene.map((item) => (
@@ -43,14 +46,6 @@ function SceneContent() {
                     />
                 ))}
             </Physics>
-        </>
-    );
-}
-
-export default function Scene() {
-    return (
-        <Canvas camera={{ position: [4, 4, 4], fov: 50 }} shadows>
-            <SceneContent />
         </Canvas>
-    )
+    );
 }

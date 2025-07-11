@@ -1,56 +1,59 @@
-// /src/components/DraggableItem.jsx (最終驗證版 - useDrag)
+// /src/components/DraggableItem.jsx (最終堆疊修正版)
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
-import { useDrag } from '@use-gesture/react';
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export default function DraggableItem({ item, orbitControlsRef }) {
     const body = useRef();
+    const boxRef = useRef(); // 需要一個對視覺物件 Box 的引用
     const [isDragging, setIsDragging] = useState(false);
-    const { size, camera } = useThree();
+    const { scene, camera } = useThree();
 
     const { w, h, d } = item.dimensions;
 
-    // 使用 useDrag Hook
-    const bind = useDrag(
-        ({ active, movement: [mx, my], timeStamp, event, first, last }) => {
-            if (first) { // 拖曳開始
-                setIsDragging(true);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
-                body.current.setBodyType(1); // 設置為 Kinematic，手動控制
-                body.current.wakeUp();
+    // 在每一幀中處理拖曳邏輯
+    useFrame((state) => {
+        if (isDragging && body.current && boxRef.current) {
+            // 1. 創建從攝影機發出的射線
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(state.mouse, camera);
+
+            // 2. 獲取場景中所有可交互的物體
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            // 3. 過濾掉被拖曳的物體本身，找到第一個碰撞點
+            const firstIntersect = intersects.find(
+                (i) => i.object.uuid !== boxRef.current.uuid && i.object.userData.isStackable
+            );
+
+            if (firstIntersect) {
+                // 4. 將物體移動到碰撞點上方
+                const point = firstIntersect.point;
+                // 在 Y 軸上加上被拖曳物體一半的高度，讓它底部貼著表面
+                body.current.setNextKinematicTranslation({ x: point.x, y: point.y + h / 2, z: point.z });
             }
+            body.current.wakeUp();
+        }
+    });
 
-            if (active) { // 拖曳中
-                const currentPos = body.current.translation();
+    const onPointerDown = (e) => {
+        e.stopPropagation();
+        setIsDragging(true);
+        if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
+        body.current.setBodyType(1); // Kinematic
+    };
 
-                // 使用一個固定的平面來計算拖曳位置，避免跳動
-                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentPos.y);
-                const ray = new THREE.Ray();
-                const mouse = new THREE.Vector2(
-                    (event.clientX / size.width) * 2 - 1,
-                    - (event.clientY / size.height) * 2 + 1
-                );
-                ray.setFromCamera(mouse, camera);
-
-                const intersection = new THREE.Vector3();
-                if (ray.intersectPlane(plane, intersection)) {
-                    body.current.setNextKinematicTranslation(intersection);
-                }
-            }
-
-            if (last) { // 拖曳結束
-                setIsDragging(false);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-                body.current.setBodyType(0); // 恢復為 Dynamic，交給物理引擎
-            }
-            return timeStamp;
-        },
-        { drag: { threshold: 3 } }
-    );
+    const onPointerUp = (e) => {
+        e.stopPropagation();
+        if (isDragging) {
+            setIsDragging(false);
+            if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
+            body.current.setBodyType(0); // Dynamic
+        }
+    };
 
     const rotateItem = (e) => {
         e.stopPropagation();
@@ -63,6 +66,8 @@ export default function DraggableItem({ item, orbitControlsRef }) {
     };
 
     return (
+        // 我們在 RigidBody 的 userData 中加入一個標記，告訴射線可以忽略它
+        // 這樣可以避免物體自己擋住自己的射線
         <RigidBody
             ref={body}
             colliders='cuboid'
@@ -70,11 +75,16 @@ export default function DraggableItem({ item, orbitControlsRef }) {
             type="dynamic"
         >
             <Box
-                {...bind()}
+                ref={boxRef} // 將 ref 綁定到 Box Mesh
                 args={[w, h, d]}
                 castShadow
                 receiveShadow
+                onPointerDown={onPointerDown}
+                onPointerUp={onPointerUp}
+                onPointerOut={onPointerUp} // 當滑鼠移出也停止拖曳
                 onContextMenu={(e) => { e.preventDefault(); rotateItem(e); }}
+                // 在視覺物件的 userData 中也加入標記，方便射線偵測
+                userData={{ isStackable: true }}
             >
                 <meshStandardMaterial color={isDragging ? '#60a5fa' : '#f97316'} />
             </Box>
