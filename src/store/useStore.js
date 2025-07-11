@@ -45,11 +45,40 @@ const useStore = create((set, get) => ({
     const spaceDims = storageSpaces[selectedSpace];
     const spaceVolume = spaceDims.w * spaceDims.h * spaceDims.d;
 
-    const itemsVolume = itemsInScene.reduce((total, item) => {
-      return total + (item.dimensions.w * item.dimensions.d * item.dimensions.h);
-    }, 0);
+   const itemsVolume = itemsInScene.reduce((total, item) => {
+          // 修正體積計算公式 w * d * h
+          return total + (item.dimensions.w * item.dimensions.d * item.dimensions.h);
+      }, 0);
 
-    const usage = spaceVolume > 0 ? (itemsVolume / spaceVolume) * 100 : 0;
+      const usage = spaceVolume > 0 ? (itemsVolume / spaceVolume) * 100 : 0;
+      // /src/store/useStore.js (新增部分)
+
+      const useStore = create((set, get) => ({
+          // ... 原有內容 ...
+          storageSpaces: {
+              'S': { w: 1, h: 2.5, d: 1 },
+              'M': { w: 2, h: 2.5, d: 2 },
+              'L': { w: 3, h: 2.5, d: 3 },
+              'Custom': { w: 2, h: 2.5, d: 2 }, // 新增一個預設的 Custom
+          },
+          selectedSpace: 'M',
+          // ... 原有內容 ...
+          setStorageSpace: (size) => {
+              set({ selectedSpace: size, itemsInScene: [] });
+          },
+
+          // VVVVVV 新增這個函數 VVVVVV
+          setCustomSpace: (dims) => {
+              set((state) => ({
+                  storageSpaces: { ...state.storageSpaces, Custom: dims },
+                  selectedSpace: 'Custom',
+                  itemsInScene: [],
+              }));
+          },
+          // ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+          // ... 其他函數保持不變 ...
+      }));
 
     return {
       spaceVolume: spaceVolume.toFixed(2),
