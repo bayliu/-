@@ -1,54 +1,50 @@
-// /src/components/DraggableItem.jsx (最終修正版 v5.2 - 修正渲染崩潰錯誤)
+// /src/components/DraggableItem.jsx (最終穩定版)
 
 import { useRef, useState } from 'react';
 import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export default function DraggableItem({ item, orbitControlsRef }) {
     const body = useRef();
-    const boxRef = useRef(); // 新增一個對 Box Mesh 的引用
     const [isDragging, setIsDragging] = useState(false);
-    const { scene, camera } = useThree();
 
-    const { w, h, d } = item.dimensions;
-
-    const bind = () => { }; // useDrag 在上次測試中不穩定，暫時移除以簡化邏輯
-
-    useFrame((state) => {
-        if (isDragging) {
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(state.mouse, camera);
-
-            // VVVVVVVV 核心修改 VVVVVVVV
-            const intersects = raycaster.intersectObjects(scene.children, true);
-            // 過濾掉被拖曳物體自身(的Box Mesh)，只尋找其他物體或地面
-            const firstIntersect = intersects.find(
-                (i) => i.object.uuid !== boxRef.current.uuid && i.object.parent.userData?.isStackable
-            );
-            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-            if (firstIntersect) {
-                const point = firstIntersect.point;
-                body.current.setNextKinematicTranslation({ x: point.x, y: point.y + h / 2 + 0.01, z: point.z });
-            }
-            body.current.wakeUp();
-        }
-    });
+    // 用一個 state 來儲存拖曳平面，確保它在事件之間保持不變
+    const [dragPlane, setDragPlane] = useState(new THREE.Plane());
 
     const onPointerDown = (e) => {
         e.stopPropagation();
-        setIsDragging(true);
-        if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
+        // 設置拖曳平面在當前物體的高度
+        setDragPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -e.point.y));
+
+        if (orbitControlsRef.current) {
+            orbitControlsRef.current.enabled = false;
+        }
+        body.current.wakeUp();
         body.current.setBodyType(1); // Kinematic
+        setIsDragging(true);
+    };
+
+    const onPointerMove = (e) => {
+        if (isDragging) {
+            e.stopPropagation();
+            const intersection = new THREE.Vector3();
+            // 在 onPointerMove 事件中計算與平面的交點
+            if (e.ray.intersectPlane(dragPlane, intersection)) {
+                body.current.setNextKinematicTranslation(intersection);
+            }
+        }
     };
 
     const onPointerUp = (e) => {
         e.stopPropagation();
-        setIsDragging(false);
-        if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-        body.current.setBodyType(0); // Dynamic
+        if (isDragging) {
+            if (orbitControlsRef.current) {
+                orbitControlsRef.current.enabled = true;
+            }
+            body.current.setBodyType(0); // Dynamic
+            setIsDragging(false);
+        }
     };
 
     const rotateItem = (e) => {
@@ -61,20 +57,21 @@ export default function DraggableItem({ item, orbitControlsRef }) {
         body.current.setRotation(currentRotation, true);
     };
 
+    const { w, h, d } = item.dimensions;
+
     return (
         <RigidBody
             ref={body}
             colliders='cuboid'
             position={item.position}
             type="dynamic"
-            userData={{ isStackable: true }}
         >
             <Box
-                ref={boxRef} // 將 ref 綁定到 Box Mesh
                 args={[w, h, d]}
                 castShadow
                 receiveShadow
                 onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerOut={onPointerUp} // 當滑鼠移出也停止拖曳
                 onContextMenu={(e) => { e.preventDefault(); rotateItem(e); }}
