@@ -1,4 +1,4 @@
-// /src/components/ControlPanel.jsx (美化版)
+// /src/components/ControlPanel.jsx (最終版 - 新增尺寸說明)
 
 import { useState } from 'react';
 import useStore from '../store/useStore';
@@ -9,14 +9,9 @@ export default function ControlPanel() {
         addItemToScene: state.addItemToScene,
     }));
 
-    const [customItem, setCustomItem] = useState({
-        name: '我的物品',
-        w: 50, d: 50, h: 50,
-    });
+    const [customItem, setCustomItem] = useState({ name: '我的物品', w: 50, d: 50, h: 50 });
 
-    const handleCustomChange = (e) => {
-        setCustomItem({ ...customItem, [e.target.name]: e.target.value });
-    };
+    const handleCustomChange = (e) => setCustomItem({ ...customItem, [e.target.name]: e.target.value });
 
     const handleAddCustomItem = (e) => {
         e.preventDefault();
@@ -40,15 +35,19 @@ export default function ControlPanel() {
         <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-72 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-center border-b border-gray-600 pb-2">新增物品</h2>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-3 mb-4">
                 {items.map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => addItemToScene(item)}
-                        className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-all duration-200 shadow-md"
-                    >
-                        {item.name}
-                    </button>
+                    <div key={item.id}>
+                        <button
+                            onClick={() => addItemToScene(item)}
+                            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-all duration-200 shadow-md"
+                        >
+                            {item.name}
+                        </button>
+                        <p className="text-xs text-center text-gray-400 mt-1">
+                            {`(寬${item.dimensions.w * 100}*長${item.dimensions.d * 100}*高${item.dimensions.h * 100}cm)`}
+                        </p>
+                    </div>
                 ))}
             </div>
 

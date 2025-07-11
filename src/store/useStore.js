@@ -10,15 +10,13 @@ const useStore = create((set, get) => ({
         { id: 'mattress', name: '單人床墊', dimensions: { w: 0.9, h: 1.9, d: 0.2 } },
         { id: 'fridge', name: '小冰箱', dimensions: { w: 0.6, h: 1.0, d: 0.6 } },
     ],
-    // VVVVVV 核心修改：將 S/M/L 替換為以材積為單位的尺寸 VVVVVV
     storageSpaces: {
-        '100材': { w: 1.1, h: 2.4, d: 1.1 }, // 約 104 材
-        '200材': { w: 1.5, h: 2.4, d: 1.5 }, // 約 190 材
-        '300材': { w: 1.9, h: 2.4, d: 1.9 }, // 約 305 材
-        'Custom': { w: 2, h: 2.5, d: 2 }, // 自訂空間的預設值保持不變
+        '100材': { w: 1.1, h: 2.4, d: 1.1 },
+        '200材': { w: 1.5, h: 2.4, d: 1.5 },
+        '300材': { w: 1.9, h: 2.4, d: 1.9 },
+        'Custom': { w: 2, h: 2.5, d: 2 },
     },
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    selectedSpace: '200材', // 預設選擇 200 材
+    selectedSpace: '200材',
     itemsInScene: [],
 
     setStorageSpace: (size) => set({ selectedSpace: size, itemsInScene: [] }),

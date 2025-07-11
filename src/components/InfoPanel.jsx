@@ -1,4 +1,4 @@
-// /src/components/InfoPanel.jsx (最終確認版)
+// /src/components/InfoPanel.jsx (最終版 - 移除小數點)
 
 import { useState, useEffect } from 'react';
 import useStore from '../store/useStore';
@@ -11,33 +11,27 @@ export default function InfoPanel() {
 
     const { spaceVolume, itemsVolume, itemsCFT, usage } = getCalculations();
 
-    const [customDims, setCustomDims] = useState({
-        w: storageSpaces.Custom.w * 100,
-        h: storageSpaces.Custom.h * 100,
-        d: storageSpaces.Custom.d * 100,
-    });
+    const [customDims, setCustomDims] = useState({ w: 200, h: 250, d: 200 });
 
     useEffect(() => {
         const currentDims = storageSpaces[selectedSpace];
         if (currentDims) {
             setCustomDims({
-                w: currentDims.w * 100,
-                h: currentDims.h * 100,
-                d: currentDims.d * 100,
+                w: Math.round(currentDims.w * 100),
+                h: Math.round(currentDims.h * 100),
+                d: Math.round(currentDims.d * 100),
             });
         }
     }, [selectedSpace, storageSpaces]);
 
-    const handleCustomDimChange = (e) => {
-        setCustomDims({ ...customDims, [e.target.name]: e.target.value });
-    };
+    const handleCustomDimChange = (e) => setCustomDims({ ...customDims, [e.target.name]: e.target.value });
 
     const handleApplyCustomSpace = (e) => {
         e.preventDefault();
         const newDims = {
             w: parseFloat(customDims.w) / 100,
             h: parseFloat(customDims.h) / 100,
-            d: parseFloat(customDims.d) / 100,
+            d: parseFloat(customDims.d) / 100
         };
         if (newDims.w > 0 && newDims.h > 0 && newDims.d > 0) {
             setCustomSpace(newDims);
