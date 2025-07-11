@@ -1,15 +1,15 @@
-// /src/App.jsx (修正版 - 恢復 InfoPanel)
+// /src/App.jsx (修正引入)
 
-import Scene from './components/Scene';
+import SceneWrapper from './components/Scene'; // <-- 修改這裡的引入名稱
 import ControlPanel from './components/ControlPanel';
-import InfoPanel from './components/InfoPanel'; // <--- 確保這行存在
+import InfoPanel from './components/InfoPanel';
 
 function App() {
     return (
-        <div className="w-screen h-screen bg-gray-900"> {/* 背景色調得更深一點 */}
+        <div className="w-screen h-screen bg-gray-900">
             <ControlPanel />
-            <InfoPanel /> {/* <--- 確保這個元件被渲染 */}
-            <Scene />
+            <InfoPanel />
+            <SceneWrapper /> {/* <-- 修改這裡的元件名稱 */}
         </div>
     )
 }
