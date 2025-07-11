@@ -1,4 +1,4 @@
-// /src/components/ControlPanel.jsx (最終版 - 新增數量輸入)
+// /src/components/ControlPanel.jsx (最終修正版 - 修正重複匯出錯誤)
 
 import { useState } from 'react';
 import useStore from '../store/useStore';
@@ -36,66 +36,37 @@ function ItemButton({ item, onAdd }) {
     );
 }
 
+// 這是 ControlPanel 元件唯一的預設導出
 export default function ControlPanel() {
     const { items, addItemToScene } = useStore();
     const [customItem, setCustomItem] = useState({ name: '我的物品', w: 50, d: 50, h: 50 });
 
     const handleCustomChange = (e) => setCustomItem({ ...customItem, [e.target.name]: e.target.value });
+
     const handleAddCustomItem = (e) => {
         e.preventDefault();
         const newItem = {
-            id: `custom-${Date.now()}`, name: customItem.name,
-            dimensions: { w: parseFloat(customItem.w) / 100, h: parseFloat(customItem.h) / 100, d: parseFloat(customItem.d) / 100 },
-        };
-        if (newItem.dimensions.w > 0 && newItem.dimensions.h > 0 && newItem.dimensions.d > 0) {
-            addItemToScene(newItem, 1); // 自訂物品一次只新增一個
-        } else { alert("請輸入所有有效的正數尺寸！"); }
-    };
-
-    return (
-        <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-96 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4 text-center border-b border-gray-600 pb-2">新增物品</h2>
-
-            <div className="space-y-3 mb-4">
-                {items.map((item) => (
-                    <ItemButton key={item.id} item={item} onAdd={addItemToScene} />
-                ))}
-            </div>
-
-            <form onSubmit={handleAddCustomItem} className="bg-gray-700/50 p-3 rounded-lg">
-                {/* ... 自訂物品表單內容保持不變 ... */}
-            </form>
-
-            <div className="text-xs text-gray-300 mt-4 p-3 bg-gray-700/50 rounded-lg">
-                {/* ... 操作提示內容保持不變 ... */}
-            </div>
-        </div>
-    );
-}
-
-// 為了方便您直接複製貼上，這裡提供完整的 ControlPanel.jsx 內容
-const FullControlPanel = () => {
-    const { items, addItemToScene } = useStore();
-    const [customItem, setCustomItem] = useState({ name: '我的物品', w: 50, d: 50, h: 50 });
-    const handleCustomChange = (e) => setCustomItem({ ...customItem, [e.target.name]: e.target.value });
-    const handleAddCustomItem = (e) => {
-        e.preventDefault();
-        const newItem = {
-            id: `custom-${Date.now()}`, name: customItem.name,
+            id: `custom-${Date.now()}`,
+            name: customItem.name,
             dimensions: { w: parseFloat(customItem.w) / 100, h: parseFloat(customItem.h) / 100, d: parseFloat(customItem.d) / 100 },
         };
         if (newItem.dimensions.w > 0 && newItem.dimensions.h > 0 && newItem.dimensions.d > 0) {
             addItemToScene(newItem, 1);
-        } else { alert("請輸入所有有效的正數尺寸！"); }
+        } else {
+            alert("請輸入所有有效的正數尺寸！");
+        }
     };
+
     return (
         <div className="absolute top-4 left-4 bg-gray-800/70 backdrop-blur-sm text-white p-4 rounded-xl shadow-lg w-96 z-10 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-center border-b border-gray-600 pb-2">新增物品</h2>
+
             <div className="space-y-3 mb-4">
                 {items.map((item) => (
                     <ItemButton key={item.id} item={item} onAdd={addItemToScene} />
                 ))}
             </div>
+
             <form onSubmit={handleAddCustomItem} className="bg-gray-700/50 p-3 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-center">自訂物品</h3>
                 <div className="space-y-3 text-sm">
@@ -122,6 +93,7 @@ const FullControlPanel = () => {
                     新增自訂物品
                 </button>
             </form>
+
             <div className="text-xs text-gray-300 mt-4 p-3 bg-gray-700/50 rounded-lg">
                 <h4 className="font-bold text-gray-100 mb-1">操作提示</h4>
                 <p>- <span className="font-semibold">拖曳空白處:</span> 旋轉視角</p>
@@ -132,4 +104,3 @@ const FullControlPanel = () => {
         </div>
     );
 }
-export { FullControlPanel as default };
