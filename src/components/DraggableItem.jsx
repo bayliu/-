@@ -1,60 +1,55 @@
-// /src/components/DraggableItem.jsx (最終堆疊修正版)
+// /src/components/DraggableItem.jsx (最終修正版 v5.2 - 修正渲染崩潰錯誤)
 
 import { useRef, useState } from 'react';
-import { RigidBody, CuboidCollider } from '@react-three/rapier';
+import { RigidBody } from '@react-three/rapier';
 import { Box, Text } from '@react-three/drei';
-import { useDrag } from '@use-gesture/react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export default function DraggableItem({ item, orbitControlsRef }) {
     const body = useRef();
+    const boxRef = useRef(); // 新增一個對 Box Mesh 的引用
     const [isDragging, setIsDragging] = useState(false);
-    const { scene, camera } = useThree(); // 取得場景和攝影機
+    const { scene, camera } = useThree();
 
     const { w, h, d } = item.dimensions;
 
-    // 使用 useDrag Hook
-    const bind = useDrag(
-        ({ active, first, last }) => {
-            if (first) { // 拖曳開始
-                setIsDragging(true);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
-                body.current.setBodyType(1); // Kinematic
-            }
-            if (last) { // 拖曳結束
-                setIsDragging(false);
-                if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
-                body.current.setBodyType(0); // Dynamic
-            }
-        },
-        { drag: { threshold: 3 } }
-    );
+    const bind = () => { }; // useDrag 在上次測試中不穩定，暫時移除以簡化邏輯
 
-    // 在每一幀中處理拖曳邏輯
     useFrame((state) => {
         if (isDragging) {
-            // 創建一條從攝影機發出的射線
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(state.mouse, camera);
 
-            // VVVVVVVV 核心修改：偵測所有可堆疊的物體 VVVVVVVV
+            // VVVVVVVV 核心修改 VVVVVVVV
             const intersects = raycaster.intersectObjects(scene.children, true);
-            // 過濾掉被拖曳物體自身，只尋找其他物體或地面
+            // 過濾掉被拖曳物體自身(的Box Mesh)，只尋找其他物體或地面
             const firstIntersect = intersects.find(
-                (i) => i.object.uuid !== body.current.uuid && i.object.parent.userData?.isStackable
+                (i) => i.object.uuid !== boxRef.current.uuid && i.object.parent.userData?.isStackable
             );
+            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
             if (firstIntersect) {
-                // 如果找到了可以堆疊的表面，就將物體移動到那個點上
                 const point = firstIntersect.point;
-                // 為了避免物體陷入其他物體，我們在 Y 軸上增加一點點偏移
                 body.current.setNextKinematicTranslation({ x: point.x, y: point.y + h / 2 + 0.01, z: point.z });
             }
-            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             body.current.wakeUp();
         }
     });
+
+    const onPointerDown = (e) => {
+        e.stopPropagation();
+        setIsDragging(true);
+        if (orbitControlsRef.current) orbitControlsRef.current.enabled = false;
+        body.current.setBodyType(1); // Kinematic
+    };
+
+    const onPointerUp = (e) => {
+        e.stopPropagation();
+        setIsDragging(false);
+        if (orbitControlsRef.current) orbitControlsRef.current.enabled = true;
+        body.current.setBodyType(0); // Dynamic
+    };
 
     const rotateItem = (e) => {
         e.stopPropagation();
@@ -67,7 +62,6 @@ export default function DraggableItem({ item, orbitControlsRef }) {
     };
 
     return (
-        // 我們在 RigidBody 的 userData 中加入一個標記，告訴射線這是一個可堆疊的物體
         <RigidBody
             ref={body}
             colliders='cuboid'
@@ -76,10 +70,13 @@ export default function DraggableItem({ item, orbitControlsRef }) {
             userData={{ isStackable: true }}
         >
             <Box
-                {...bind()}
+                ref={boxRef} // 將 ref 綁定到 Box Mesh
                 args={[w, h, d]}
                 castShadow
                 receiveShadow
+                onPointerDown={onPointerDown}
+                onPointerUp={onPointerUp}
+                onPointerOut={onPointerUp} // 當滑鼠移出也停止拖曳
                 onContextMenu={(e) => { e.preventDefault(); rotateItem(e); }}
             >
                 <meshStandardMaterial color={isDragging ? '#60a5fa' : '#f97316'} />
